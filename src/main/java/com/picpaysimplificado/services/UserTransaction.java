@@ -5,14 +5,9 @@ import com.picpaysimplificado.domain.transaction.Transaction;
 import com.picpaysimplificado.domain.user.User;
 import com.picpaysimplificado.repositories.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Map;
 
 @Service
 public class UserTransaction {
@@ -23,7 +18,7 @@ public class UserTransaction {
  private TransactionRepository repository;
 
  @Autowired
- private RestTemplate restTemplate;
+ private AuthorizationService authService;
 
  @Autowired
  private NotificationService notificationService;
@@ -34,7 +29,7 @@ public class UserTransaction {
 
      userService.validateTransaction(sender, transaction.value());
 
-     Boolean isAuthorized = this.authorizeTransaction(sender, transaction.value());
+     Boolean isAuthorized = this.authService.authorizeTransaction(sender, transaction.value());
      if (!isAuthorized) {
          throw new Exception("Transação não autorizada!");
      }
@@ -53,16 +48,8 @@ public class UserTransaction {
      this.userService.saveUser(receiver);
 
      this.notificationService.sendNotification(sender, "Transação realizada com sucesso!");
-     this.notificationService.sendNotification(receiver, "Transação realizada com sucesso!");
+     this.notificationService.sendNotification(receiver, "Transação recebida com sucesso!");
      return transaction1;
  }
 
- public Boolean authorizeTransaction(User sender, BigDecimal value) {
-    ResponseEntity<Map> authorizationResponse = restTemplate.getForEntity("https://run.mocky.io/v3/8fafdd68-a090-496f-8c9a-3442cf30dae6", Map.class);
-
-    if (authorizationResponse.getStatusCode() == HttpStatus.OK) {
-        String message = (String) authorizationResponse.getBody().get("message");
-        return "Autorizado".equalsIgnoreCase(message);
-    } else return false;
- }
 }
